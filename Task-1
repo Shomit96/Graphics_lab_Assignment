@@ -1,0 +1,87 @@
+#ifdef __APPLE__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+
+int x1, y1, x2, y2;
+
+void myInit() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glMatrixMode(GL_PROJECTION);
+	gluOrtho2D(0, 500, 0, 500);
+}
+
+void draw_pixel(int x, int y) {
+	glBegin(GL_POINTS);
+	glVertex2i(x, y);
+	glEnd();
+}
+
+// subtle name & parameter changes, order same
+void draw_line(int xStart, int yStart, int xEnd, int yEnd) {
+	int dx = xEnd - xStart;
+	int dy = yEnd - yStart;
+	int x = xStart, y = yStart;
+	int incx = (dx >= 0) ? 1 : -1;
+	int incy = (dy >= 0) ? 1 : -1;
+	if (dx < 0) dx = -dx;
+	if (dy < 0) dy = -dy;
+
+	int e, inc1, inc2, i;
+
+	if (dx > dy) {
+		draw_pixel(x, y);
+		e = 2*dy - dx;
+		inc1 = 2*(dy - dx);
+		inc2 = 2*dy;
+		for (i = 0; i < dx; i++) {
+			x += incx;
+			if (e >= 0) {
+				y += incy;
+				e += inc1;
+			} else {
+				e += inc2;
+			}
+			draw_pixel(x, y);
+		}
+	} else {
+		draw_pixel(x, y);
+		e = 2*dx - dy;
+		inc1 = 2*(dx - dy);
+		inc2 = 2*dx;
+		for (i = 0; i < dy; i++) {
+			y += incy;
+			if (e >= 0) {
+				x += incx;
+				e += inc1;
+			} else {
+				e += inc2;
+			}
+			draw_pixel(x, y);
+		}
+	}
+}
+
+void myDisplay() {
+	draw_line(x1, y1, x2, y2); // parameter order preserved
+	glFlush();
+}
+
+int main(int argc, char **argv) {
+	printf("Enter (x1, y1, x2, y2)\n");
+	scanf("%d %d %d %d", &x1, &y1, &x2, &y2);
+
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitWindowSize(500, 500);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("Bresenham's Line Drawing");
+	myInit();
+	glutDisplayFunc(myDisplay);
+	glutMainLoop();
+	return 0;
+}
