@@ -1,0 +1,108 @@
+#include <GL/glut.h>
+#include <iostream>
+using namespace std;
+
+float clipXmin, clipYmin, clipXmax, clipYmax;
+
+struct Segment {
+    float xStart, yStart, xEnd, yEnd;
+};
+Segment segs[20];
+int totalLines;
+
+bool clipLineLB(float x0, float y0, float x1, float y1,
+                float xmin, float ymin, float xmax, float ymax,
+                float &rx0, float &ry0, float &rx1, float &ry1)
+{
+    float dx = x1 - x0;
+    float dy = y1 - y0;
+
+    float p[4] = {-dx, dx, -dy, dy};
+    float q[4] = {x0 - xmin, xmax - x0, y0 - ymin, ymax - y0};
+
+    float uLow = 0.0f, uHigh = 1.0f;
+
+    for (int i = 0; i < 4; i++) {
+        if (p[i] == 0) {
+            if (q[i] < 0) return false;
+        } else {
+            float u = q[i] / p[i];
+            if (p[i] < 0) uLow = max(uLow, u);
+            else uHigh = min(uHigh, u);
+        }
+    }
+
+    if (uLow > uHigh) return false;
+
+    rx0 = x0 + uLow * dx;
+    ry0 = y0 + uLow * dy;
+    rx1 = x0 + uHigh * dx;
+    ry1 = y0 + uHigh * dy;
+
+    return true;
+}
+
+void drawClipRect(float xmin, float ymin, float xmax, float ymax) {
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(xmin, ymin);
+    glVertex2f(xmax, ymin);
+    glVertex2f(xmax, ymax);
+    glVertex2f(xmin, ymax);
+    glEnd();
+}
+
+void renderScene() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    drawClipRect(clipXmin, clipYmin, clipXmax, clipYmax);
+
+    for (int i = 0; i < totalLines; i++) {
+        float x0 = segs[i].xStart, y0 = segs[i].yStart;
+        float x1 = segs[i].xEnd, y1 = segs[i].yEnd;
+
+        glColor3f(1.0f, 0.0f, 0.0f);
+        glBegin(GL_LINES);
+        glVertex2f(x0, y0);
+        glVertex2f(x1, y1);
+        glEnd();
+
+        float cx0, cy0, cx1, cy1;
+        if (clipLineLB(x0, y0, x1, y1, clipXmin, clipYmin, clipXmax, clipYmax, cx0, cy0, cx1, cy1)) {
+            glColor3f(0.0f, 1.0f, 0.0f);
+            glBegin(GL_LINES);
+            glVertex2f(cx0, cy0);
+            glVertex2f(cx1, cy1);
+            glEnd();
+        }
+    }
+
+    glFlush();
+}
+
+void setupGL() {
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, 500, 0, 500);
+}
+
+int main(int argc, char **argv) {
+    cin >> clipXmin >> clipYmin >> clipXmax >> clipYmax;
+    cin >> totalLines;
+
+    for (int i = 0; i < totalLines; i++) {
+        cin >> segs[i].xStart >> segs[i].yStart >> segs[i].xEnd >> segs[i].yEnd;
+    }
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(500, 500);
+    glutInitWindowPosition(150, 150);
+    glutCreateWindow("Liang-Barsky Clipping (Modified)");
+    setupGL();
+    glutDisplayFunc(renderScene);
+    glutMainLoop();
+
+    return 0;
+}
